@@ -1,0 +1,94 @@
+/* ... existing code ... */
+.editor-container textarea {
+width: 100%;
+height: 250px;
+background: #0d1117;
+color: #e6edf3;
+border: 1px solid #30363d;
+border-radius: 6px;
+padding: 12px;
+font-family: monospace;
+font-size: 14px;
+resize: vertical;
+}
+​/* IDE Wrapper & Syntax Highlighter styles */
+.ide-wrapper {
+position: relative;
+display: flex;
+background: #0d1117;
+border: 1px solid #30363d;
+border-radius: 6px;
+overflow: hidden;
+margin-bottom: 15px;
+}
+​.ide-gutter {
+width: 40px;
+background: #161b22;
+color: #8b949e;
+font-family: monospace;
+font-size: 14px;
+padding: 12px 0;
+text-align: right;
+padding-right: 10px;
+user-select: none;
+overflow: hidden;
+line-height: 1.5;
+}
+​.ide-wrapper textarea {
+flex: 1;
+height: 250px;
+background: transparent !important;
+color: transparent !important;
+caret-color: #e6edf3;
+border: none !important;
+padding: 12px;
+font-family: monospace;
+font-size: 14px;
+line-height: 1.5;
+resize: vertical;
+z-index: 2;
+position: relative;
+outline: none;
+}
+​#syntax-highlighter {
+position: absolute;
+top: 0;
+left: 40px;
+right: 0;
+bottom: 0;
+padding: 12px;
+margin: 0;
+font-family: monospace;
+font-size: 14px;
+line-height: 1.5;
+pointer-events: none;
+white-space: pre-wrap;
+word-wrap: break-word;
+overflow: hidden;
+color: #e6edf3;
+z-index: 1;
+}
+​.syntax-keyword {
+color: #ff7b72;
+font-weight: bold;
+}
+​/* Export Controls Styling */
+.export-controls {
+display: flex;
+gap: 8px;
+}
+​.export-btn {
+background: #21262d;
+color: #c9d1d9;
+border: 1px solid #30363d;
+padding: 6px 12px;
+border-radius: 6px;
+font-size: 0.85rem;
+cursor: pointer;
+transition: background 0.2s;
+}
+​.export-btn:hover {
+background: #30363d;
+color: #ffffff;
+}
+/* ... existing code ... */

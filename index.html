@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code-to-Flowchart Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+            line-height: 1.6;
+            padding: 30px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 20px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        header h2 {
+            color: #58a6ff;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+        .nav-btn, .tab-btn {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .nav-btn:hover, .tab-btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+            color: #ffffff;
+        }
+        .nav-btn.active, .tab-btn.active {
+            background: #1f6feb;
+            border-color: #388bfd;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(31, 111, 235, 0.4);
+        }
+        
+        main {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        
+        #generator-page.active {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 40px;
+            align-items: start;
+        }
+        @media(max-width: 1100px) {
+            #generator-page.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .editor-container, .preview-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        }
+
+        .ide-wrapper {
+            position: relative;
+            display: flex;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .ide-gutter {
+            width: 65px;
+            background: #161b22;
+            color: #8b949e;
+            font-family: monospace;
+            font-size: 16px;
+            padding: 24px 0;
+            text-align: right;
+            padding-right: 18px;
+            user-select: none;
+            overflow: hidden;
+            line-height: 1.6;
+            border-right: 1px solid #30363d;
+        }
+        .ide-wrapper textarea {
+            flex: 1;
+            height: 480px;
+            background: transparent;
+            color: transparent;
+            caret-color: #e6edf3;
+            border: none;
+            padding: 24px;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            z-index: 2;
+            position: relative;
+            outline: none;
+        }
+        #syntax-highlighter {
+            position: absolute;
+            top: 0;
+            left: 65px;
+            right: 0;
+            bottom: 0;
+            padding: 24px;
+            margin: 0;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            pointer-events: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: hidden;
+            color: #e6edf3;
+            z-index: 1;
+        }
+        .syntax-keyword {
+            color: #ff7b72;
+            font-weight: bold;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .theme-selector label {
+            font-size: 0.95rem;
+            color: #8b949e;
+            font-weight: 500;
+        }
+        .theme-btn {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .theme-btn.active {
+            background: #238636;
+            border-color: #2ea043;
+            color: white;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.4);
+        }
+
+        #generate-btn {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: white;
+            border: none;
+            padding: 20px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.15rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 6px 20px rgba(35, 134, 54, 0.3);
+        }
+        #generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(35, 134, 54, 0.5);
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 12px;
+        }
+        .export-btn {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .export-btn:hover {
+            background: #30363d;
+            color: #ffffff;
+            border-color: #8b949e;
+        }
+
+        .preview-container {
+            min-height: 590px;
+            display: flex;
+            flex-direction: column;
+        }
+        #flowchart-output {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            overflow: auto;
+            background: radial-gradient(circle at center, #111620 0%, #080b10 100%);
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 16px rgba(0,0,0,0.6);
+            min-height: 480px;
+        }
+
+        .controls-container {
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #template-search {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            width: 100%;
+        }
+        .category-tabs {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .template-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 14px;
+            padding: 30px;
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .template-card:hover {
+            border-color: #58a6ff;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(88, 166, 255, 0.15);
+        }
+        .template-card h4 {
+            color: #58a6ff;
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+        }
+        .template-card p {
+            color: #8b949e;
+            font-size: 1.02rem;
+        }
+        #load-more-btn {
+            background: #21262d;
+            color: #58a6ff;
+            border: 1px solid #30363d;
+            padding: 16px 36px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        #load-more-btn:hover {
+            background: #30363d;
+            color: #ffffff;
+        }
+
+        #custom-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            padding: 20px;
+        }
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 35px;
+            width: 600px;
+            max-width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 50px rgba(0,0,0,0.7);
+            text-align: center;
+        }
+        .modal-content p {
+            color: #e6edf3;
+            font-size: 1.15rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .modal-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 15px;
+        }
+        .modal-btn:hover {
+            background: #2ea043;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Code-to-Flowchart</h2>
+        <nav>
+            <button class="nav-btn active" onclick="switchPage('generator', event)">Generator</button>
+            <button class="nav-btn" onclick="switchPage('templates', event)">Templates (1,000+)</button>
+            <button class="nav-btn" onclick="switchPage('about', event)">About</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Page 1: Generator Workspace -->
+        <section id="generator-page" class="page active">
+            <div class="editor-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <h3 style="font-size: 1.25rem; color: #c9d1d9;">Write or Paste Code / Pseudocode:</h3>
+                    <div class="theme-selector">
+                        <label>Vibe:</label>
+                        <button class="theme-btn active" onclick="setTheme('neon', event)">Neon Glow</button>
+                        <button class="theme-btn" onclick="setTheme('cyberpunk', event)">Cyberpunk</button>
+                        <button class="theme-btn" onclick="setTheme('emerald', event)">Emerald</button>
+                    </div>
+                </div>
+
+                <div class="ide-wrapper">
+                    <div class="ide-gutter" id="ide-gutter">1</div>
+                    <textarea id="pseudocode-input" placeholder="START&#10;input x&#10;if x > 0&#10;  print 'Positive'&#10;else&#10;  print 'Negative'&#10;endif&#10;END" oninput="updateGutter(); highlightSyntax();" onscroll="syncScroll()">START
+input x
+res = x * 9
+print res
+END</textarea>
+                    <pre id="syntax-highlighter" aria-hidden="true"><code id="highlight-code"></code></pre>
+                </div>
+                <button id="generate-btn" onclick="generateFlowchart()">⚡ Generate Flowchart</button>
+            </div>
+            
+            <div class="preview-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <h3 style="margin: 0; font-size: 1.25rem; color: #c9d1d9;">Visual Multi-Shape Flowchart:</h3>
+                    <div class="export-controls">
+                        <button class="export-btn" onclick="exportFlowchart('png')">📥 Export PNG</button>
+                        <button class="export-btn" onclick="exportFlowchart('svg')">📥 Export SVG</button>
+                    </div>
+                </div>
+                <div id="flowchart-output" style="color: #8b949e; text-align: center;">
+                    <p style="font-size: 1.1rem;">Click <b>"⚡ Generate Flowchart"</b> to render your visual diagram.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page 2: Templates Library -->
+        <section id="templates-page" class="page">
+            <h2 style="font-size: 1.9rem; margin-bottom: 12px;">Algorithm Templates Library (1,000 Master Collection)</h2>
+            <p style="color: #8b949e; font-size: 1.15rem;">Select from over 1,000 auto-generated multi-shape algorithmic templates:</p>
+            
+            <div class="controls-container">
+                <input type="text" id="template-search" placeholder="Search templates (e.g., Arithmetic, Conditional, Loop)..." onkeyup="filterTemplates()">
+                
+                <div class="category-tabs">
+                    <button class="tab-btn active" onclick="setCategory('all', event)">All</button>
+                    <button class="tab-btn" onclick="setCategory('arithmetic', event)">Basics</button>
+                    <button class="tab-btn" onclick="setCategory('conditional', event)">Conditionals</button>
+                    <button class="tab-btn" onclick="setCategory('loop', event)">Loops</button>
+                    <button class="tab-btn" onclick="setCategory('array', event)">Arrays</button>
+                    <button class="tab-btn" onclick="setCategory('advanced', event)">Advanced</button>
+                </div>
+            </div>
+
+            <div class="template-grid" id="dynamic-template-grid"></div>
+
+            <div style="text-align: center; margin: 50px 0;">
+                <button id="load-more-btn" onclick="loadMoreTemplates()">Load More</button>
+            </div>
+        </section>
+
+        <!-- Page 3: Structured About Page -->
+        <section id="about-page" class="page">
+            <div class="about-content" style="background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 50px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);">
+                <h2 style="color: #58a6ff; margin-bottom: 35px; font-size: 2.1rem;">About Code-to-Flowchart Generator</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3>🎯 Mission / Purpose Statement</h3>
+                    <p style="color: #8b949e; font-size: 1.15rem; margin-top: 8px;">Our mission is to instantly transform standard text code and pseudocode into clean, structured, multi-shape flowcharts featuring distinct terminals, inputs, decisions, processes, and outputs with customizable themes.</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3>🛠️ Core Features / What We Offer</h3>
+                    <p style="color: #8b949e; font-size: 1.15rem; margin-top: 8px;">Supports automatic shape detection (`if/else` diamonds, `input/read` parallelograms, `print/output` parallelograms, `START/END` circles/pills, and rectangular processes), real-time Mermaid rendering, high-res PNG/SVG exports, and 1,000+ searchable algorithmic templates.</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3>👥 Who It Is For</h3>
+                    <p style="color: #8b949e; font-size: 1.15rem; margin-top: 8px;">Designed for programmers, computer science students, teachers, and system architects who want clear diagrams without manual drawing tools.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Custom Modal Overlay -->
+    <div id="custom-modal">
+        <div class="modal-content">
+            <p id="modal-message">Notification message here</p>
+            <div id="modal-action-area" style="margin-top: 20px;"></div>
+            <button class="modal-btn" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        let currentCategory = 'all';
+        let visibleCount = 12;
+        let allTemplates = [];
+        let currentTheme = 'neon';
+
+        const themes = {
+            neon: {
+                startEnd: 'fill:#0d2818,stroke:#2ea043,stroke-width:2px,color:#d1ffd6,font-weight:bold,rx:15,ry:15',
+                process: 'fill:#111c2e,stroke:#388bfd,stroke-width:2px,color:#c6e2ff,rx:6,ry:6',
+                io: 'fill:#2b1d0c,stroke:#f0883e,stroke-width:2px,color:#ffdfb6',
+                decision: 'fill:#2d1522,stroke:#f85149,stroke-width:2px,color:#ffdcd7'
+            },
+            cyberpunk: {
+                startEnd: 'fill:#2d1235,stroke:#db61a2,stroke-width:2.5px,color:#ffccf2,font-weight:bold,rx:15,ry:15',
+                process: 'fill:#122838,stroke:#00f0ff,stroke-width:2px,color:#ccffff,rx:6,ry:6',
+                io: 'fill:#382c12,stroke:#f1e05a,stroke-width:2px,color:#fffbe0',
+                decision: 'fill:#3b1414,stroke:#ff3333,stroke-width:2.5px,color:#ffcccc'
+            },
+            emerald: {
+                startEnd: 'fill:#062319,stroke:#00e676,stroke-width:2px,color:#b9f6ca,font-weight:bold,rx:15,ry:15',
+                process: 'fill:#0b211f,stroke:#1de9b6,stroke-width:2px,color:#e0f2f1,rx:6,ry:6',
+                io: 'fill:#1a237e,stroke:#5c6bc0,stroke-width:2px,color:#e8eaf6',
+                decision: 'fill:#4a148c,stroke:#e040fb,stroke-width:2px,color:#f3e5f5'
+            }
+        };
+
+        function setTheme(themeName, eventObj) {
+            currentTheme = themeName;
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            if (eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+            const outputDiv = document.getElementById('flowchart-output');
+            if (outputDiv && outputDiv.querySelector('svg')) {
+                generateFlowchart();
+            }
+        }
+
+        function showModal(message, extraHtml = '') {
+            const modal = document.getElementById('custom-modal');
+            const msgEl = document.getElementById('modal-message');
+            const actionArea = document.getElementById('modal-action-area');
+            if (modal && msgEl) {
+                msgEl.innerHTML = message;
+                if (actionArea) actionArea.innerHTML = extraHtml;
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function initTemplates() {
+            if (allTemplates.length > 0) return;
+            
+            const titles = {
+                arithmetic: ["Basic Arithmetic Flow", "Variable Assignment Routine", "Simple Formula Calculation", "Mathematical Expression Evaluator", "Input-Output Processing Block"],
+                conditional: ["If-Else Decision Branch", "Multi-Tier Evaluation Flow", "Relational Comparison Check", "Boolean Guard Condition", "Nested Branch Validator"],
+                loop: ["Counter-Controlled Loop", "Accumulator Sequence", "Iterative Range Processing", "Conditional While-Loop Block", "Step-Wise Increment Routine"],
+                array: ["Sequential Array Search", "Dataset Traversal Routine", "Array Item Lookup Filter", "Collection Mapping Process", "Indexed Element Selector"],
+                advanced: ["Error Handling Routine", "Matrix Transformation Block", "Advanced Function Wrapper", "Exception Try-Catch Sequence", "Complex Pipeline Routine"]
+            };
+
+            for (let i = 1; i <= 1000; i++) {
+                let category = 'arithmetic';
+                if (i > 200 && i <= 400) category = 'conditional';
+                else if (i > 400 && i <= 650) category = 'loop';
+                else if (i > 650 && i <= 850) category = 'array';
+                else if (i > 850) category = 'advanced';
+
+                const categoryTitles = titles[category];
+                const titleBase = categoryTitles[(i - 1) % categoryTitles.length];
+
+                let sampleCode = 'START\ninput x\nres = x * ' + (i % 10) + '\nprint res\nEND';
+                if (category === 'conditional') {
+                    sampleCode = 'START\ninput x\nif x > ' + (i % 50) + '\n  print "Condition Met"\nelse\n  print "Condition Failed"\nendif\nEND';
+                } else if (category === 'loop') {
+                    sampleCode = 'START\ninput n\nwhile n > 0\n  print n\n  n = n - 1\nendwhile\nEND';
+                } else if (category === 'array') {
+                    sampleCode = 'START\ninput arr\nfor item in arr\n  print item\nendfor\nEND';
+                } else if (category === 'advanced') {
+                    sampleCode = 'START\ntry\n  input data\n  process data\ncatch error\n  print error\nendtry\nEND';
+                }
+
+                allTemplates.push({
+                    id: 't' + i,
+                    title: i + '. ' + titleBase,
+                    desc: 'Optimized multi-shape variant for clean ' + category + ' logic evaluation and flow mapping.',
+                    category: category,
+                    code: sampleCode
+                });
+            }
+        }
+
+        function switchPage(pageId, eventObj) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const targetPage = document.getElementById(pageId + '-page');
+            if (targetPage) targetPage.classList.add('active');
+            
+            if (eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+            
+            if (pageId === 'templates') {
+                initTemplates();
+                renderTemplateGrid();
+            }
+        }
+
+        function setCategory(category, eventObj) {
+            currentCategory = category;
+            visibleCount = 12;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (eventObj && eventObj.currentTarget) {
+                eventObj.currentTarget.classList.add('active');
+            }
+            renderTemplateGrid();
+        }
+
+        function filterTemplates() {
+            visibleCount = 12;
+            renderTemplateGrid();
+        }
+
+        function loadMoreTemplates() {
+            visibleCount += 12;
+            renderTemplateGrid();
+        }
+
+        function renderTemplateGrid() {
+            const grid = document.getElementById('dynamic-template-grid');
+            const searchInput = document.getElementById('template-search');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            
+            if (!grid) return;
+
+            const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
+
+            const filtered = allTemplates.filter(t => {
+                const matchesCategory = currentCategory === 'all' || t.category === currentCategory;
+                const matchesSearch = t.title.toLowerCase().includes(searchQuery) || t.desc.toLowerCase().includes(searchQuery);
+                return matchesCategory && matchesSearch;
+            });
+
+            const paginated = filtered.slice(0, visibleCount);
+            
+            let html = '';
+            paginated.forEach(t => {
+                html += '<div class="template-card" onclick="loadTemplate(\'' + t.id + '\')">' +
+                    '<h4>' + t.title + '</h4>' +
+                    '<p>' + t.desc + '</p>' +
+                '</div>';
+            });
+            
+            grid.innerHTML = html;
+
+            if (loadMoreBtn) {
+                if (visibleCount >= filtered.length) {
+                    loadMoreBtn.style.display = 'none';
+                } else {
+                    loadMoreBtn.style.display = 'inline-block';
+                }
+            }
+        }
+
+        function loadTemplate(id) {
+            initTemplates();
+            const template = allTemplates.find(t => t.id === id);
+            if (!template) return;
+            
+            const pseudocodeInput = document.getElementById('pseudocode-input');
+            if (pseudocodeInput) {
+                pseudocodeInput.value = template.code;
+                updateGutter();
+                highlightSyntax();
+            }
+            
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const generatorPage = document.getElementById('generator-page');
+            if (generatorPage) generatorPage.classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const firstNavBtn = document.querySelector('nav button:first-child');
+            if (firstNavBtn) firstNavBtn.classList.add('active');
+
+            const outputDiv = document.getElementById('flowchart-output');
+            if (outputDiv) {
+                outputDiv.innerHTML = '<p style="font-size: 1.1rem; color: #8b949e;">Template loaded. Click <b>"⚡ Generate Flowchart"</b> to render.</p>';
+            }
+        }
+
+        function generateFlowchart() {
+            const pseudocodeInput = document.getElementById('pseudocode-input');
+            const outputDiv = document.getElementById('flowchart-output');
+            
+            if (!pseudocodeInput || !outputDiv) return;
+            const code = pseudocodeInput.value.trim();
+            
+            if (!code) {
+                outputDiv.innerHTML = '<p style="color: #f85149;">Please enter some pseudocode first.</p>';
+                return;
+            }
+
+            let lines = code.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            let mermaidCode = 'graph TD;\n';
+            
+            const tStyle = themes[currentTheme];
+            mermaidCode += 'classDef startEnd ' + tStyle.startEnd + ';\n';
+            mermaidCode += 'classDef process ' + tStyle.process + ';\n';
+            mermaidCode += 'classDef io ' + tStyle.io + ';\n';
+            mermaidCode += 'classDef decision ' + tStyle.decision + ';\n';
+            
+            let lastNodeId = 'StartNode';
+            mermaidCode += 'StartNode((START)):::startEnd;\n';
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                let upper = line.toUpperCase();
+                if (upper === 'START' || upper === 'END') continue;
+
+                let nodeId = 'Node' + i;
+                let cleanText = line.replace(/"/g, "'");
+
+                if (upper.startsWith('INPUT') || upper.startsWith('READ') || upper.startsWith('PRINT') || upper.startsWith('OUTPUT')) {
+                    mermaidCode += nodeId + '[/"' + cleanText + '"/]\:::io;\n';
+                } else if (upper.startsWith('IF') || upper.startsWith('WHILE') || upper.startsWith('TRY') || upper.startsWith('CATCH') || upper.startsWith('FOR') || upper.startsWith('ENDIF') || upper.startsWith('ENDWHILE') || upper.startsWith('ENDTRY') || upper.startsWith('ENDFOR')) {
+                    mermaidCode += nodeId + '{{"' + cleanText + '"}}\:::decision;\n';
+                } else {
+                    mermaidCode += nodeId + '["' + cleanText + '"]:::process;\n';
+                }
+
+                mermaidCode += lastNodeId + ' --> ' + nodeId + ';\n';
+                lastNodeId = nodeId;
+            }
+
+            let endNodeId = 'EndNode';
+            mermaidCode += endNodeId + '((END)):::startEnd;\n';
+            mermaidCode += lastNodeId + ' --> ' + endNodeId + ';\n';
+
+            outputDiv.innerHTML = '<div class="mermaid">' + mermaidCode + '</div>';
+            setTimeout(() => {
+                mermaid.init(undefined, outputDiv.querySelectorAll('.mermaid'));
+            }, 50);
+        }
+
+        function exportFlowchart(format) {
+            const outputDiv = document.getElementById('flowchart-output');
+            if (!outputDiv) return;
+            const svgElement = outputDiv.querySelector('svg');
+            
+            if (!svgElement) {
+                showModal('Please click <b>"⚡ Generate Flowchart"</b> first before exporting.');
+                return;
+            }
+
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(svgElement);
+            
+            if (format === 'svg') {
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'flowchart.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showModal('Success! Your SVG flowchart has been downloaded.');
+            } else if (format === 'png') {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                const svgBox = svgElement.getBoundingClientRect();
+                
+                canvas.width = (svgBox.width || 900) * 2;
+                canvas.height = (svgBox.height || 700) * 2;
+                
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                
+                img.onload = function() {
+                    context.fillStyle = '#0d1117';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    URL.revokeObjectURL(url);
+
+                    showModal(
+                        '<b>PNG Flowchart Ready!</b><br><span style="font-size:0.95rem; color:#8b949e;">Click the green button below to save your high-resolution flowchart image:</span>',
+                        '<br><a href="' + pngDataUrl + '" download="flowchart.png" style="display: inline-block; background: #238636; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 14px rgba(35,134,54,0.4);">💾 Click Here to Save PNG Directly</a>'
+                    );
+                };
+                img.onerror = function() {
+                    showModal('Export failed. Please try exporting as SVG.');
+                };
+                img.src = url;
+            }
+        }
+
+        function updateGutter() {
+            const textarea = document.getElementById('pseudocode-input');
+            const gutter = document.getElementById('ide-gutter');
+            if (!textarea || !gutter) return;
+            const lines = textarea.value.split('\n').length;
+            let numbers = '';
+            for (let i = 1; i <= lines; i++) {
+                numbers += i + '<br>';
+            }
+            gutter.innerHTML = numbers;
+        }
+
+        function syncScroll() {
+            const textarea = document.getElementById('pseudocode-input');
+            const highlighter = document.getElementById('syntax-highlighter');
+            const gutter = document.getElementById('ide-gutter');
+            if (highlighter && textarea) {
+                highlighter.scrollTop = textarea.scrollTop;
+                highlighter.scrollLeft = textarea.scrollLeft;
+            }
+            if (gutter && textarea) {
+                gutter.scrollTop = textarea.scrollTop;
+            }
+        }
+
+        function highlightSyntax() {
+            const textarea = document.getElementById('pseudocode-input');
+            const codeEl = document.getElementById('highlight-code');
+            if (!textarea || !codeEl) return;
+            
+            let text = textarea.value
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            const keywords = /\b(START|END|input|print|if|else|endif|while|endwhile|for|endfor|read|output|try|catch|endtry)\b/g;
+            text = text.replace(keywords, '<span class="syntax-keyword">$1</span>');
+
+            codeEl.innerHTML = text + '<br>';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTemplates();
+            updateGutter();
+            highlightSyntax();
+            // Leave flowchart-output untouched on load so it only renders when the button is clicked.
+        });
+    </script>
+</body>
+</html>
